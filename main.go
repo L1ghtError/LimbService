@@ -34,8 +34,9 @@ func main() {
 		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowCredentials: true,
+		ExposeHeaders:    "Vary, Content-Length, Content-Type, ETag",
 	}))
 
 	routers.Routes(app)
-	app.Listen("192.168.251.102:5266")
+	app.Listen("localhost:5266")
 }

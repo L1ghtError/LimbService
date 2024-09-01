@@ -23,10 +23,23 @@ func Auth(c *fiber.Ctx) error {
 func Callback(c *fiber.Ctx) error {
 	token, err := auth.ConfigGoogle().Exchange(c.Context(), c.FormValue("code"))
 	if err != nil {
-		panic(err)
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
-	emal := auth.GetEmail(token.AccessToken)
-	return c.Status(200).JSON(fiber.Map{"emal": emal, "login": true})
+	user, err := auth.GetGoogleResponse(token.AccessToken)
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+	}
+
+	tokens, err := service.OAuthConnect(c, model.UserSchema{Email: user.Email,
+		UserName: user.UserName, Fullname: user.Fullname, IsActivated: user.Verified})
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+	}
+
+	c.Cookie(&fiber.Cookie{Name: middleware.CookieJWT, Value: tokens.Refresh,
+		Expires: time.Now().Add(service.RefreshokenExpires), SessionOnly: false})
+
+	return c.SendStatus(fiber.StatusCreated)
 }
 
 func Registration(c *fiber.Ctx) error {

@@ -45,6 +45,35 @@ func Register(c *fiber.Ctx, user model.UserSchema) (*TokenPair, error) {
 	return tokens, nil
 }
 
+func OAuthConnect(c *fiber.Ctx, user model.UserSchema) (*TokenPair, error) {
+	collection := mongoclient.DB.Collection("userBase")
+	filter := bson.D{{Key: "email", Value: user.Email}}
+	var dbUser model.UserSchema
+
+	err := collection.FindOne(c.Context(), filter).Decode(&dbUser)
+	if err == mongo.ErrNoDocuments {
+		inserted, err := collection.InsertOne(c.Context(), user)
+		if err != nil {
+			return nil, err
+		}
+		user.ID = inserted.InsertedID.(primitive.ObjectID)
+	} else if err != nil {
+		return nil, err
+	}
+
+	user.ID = dbUser.ID
+	tokens, err := GenerateTokens(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	err = SaveToken(c, &model.TokenSchema{UserId: dbUser.ID, RefreshToken: tokens.Refresh})
+	if err != nil {
+		return nil, err
+	}
+	return tokens, nil
+}
+
 func Login(c *fiber.Ctx, user model.UserSchema) (*TokenPair, error) {
 	collection := mongoclient.DB.Collection("userBase")
 	filter := bson.D{{Key: "email", Value: user.Email}}
@@ -118,7 +147,6 @@ func GetBasics(c *fiber.Ctx, token *jwt.Token) (*model.UserSchema, error) {
 
 	// in most cases err was validated in jwt middleware
 	claims, _ := ClaimModel(&token.Raw, []byte(config.Config("JWT_ACCESS_SECRET")))
-	fmt.Printf("id is: %v", claims.UserId)
 
 	objectID, err := primitive.ObjectIDFromHex(claims.UserId)
 	if err != nil {
