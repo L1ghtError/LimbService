@@ -27,10 +27,11 @@ func main() {
 				Message: err.Error(),
 			})
 		},
+		StreamRequestBody: true, // to be able to steram media files
 	})
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://192.168.251.102:5173, http://localhost:5173", // Allow all origins or specify your domains
+		AllowOrigins:     "http://192.168.1.100:5173, http://localhost:5173", // Allow all origins or specify your domains
 		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowCredentials: true,

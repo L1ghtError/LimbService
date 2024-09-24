@@ -29,4 +29,9 @@ func Routes(app *fiber.App) {
 	user := api.Group("/user")
 	user.Use(middleware.Protected([]byte(config.Config("JWT_ACCESS_SECRET")), middleware.HeaderTokenLookup))
 	user.Get("/basics", handlers.GetBasics)
+
+	api.Get("/download/image", handlers.DownloadImage) // TODO: set under "user"
+	//api.Post("/enhance/image", handlers.EnhanceImage)  // TODO: set under "user"
+
+	user.Post("/upload/image", handlers.UploadImage)
 }

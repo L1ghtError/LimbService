@@ -141,3 +141,48 @@ func GetBasics(c *fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(user)
 }
+func UploadImage(c *fiber.Ctx) error {
+	userToken := c.Locals("user").(*jwt.Token)
+	user, err := service.GetBasics(c, userToken)
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+	}
+
+	file, err := c.FormFile("document")
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+	}
+
+	err = service.UploadPicture(c, file, &model.ImageMetadata{UserId: user.ID, Header: file.Header})
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+	}
+	return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{"status": "error", "message": "Not Implemented"})
+}
+
+func DownloadImage(c *fiber.Ctx) error {
+	myValidator := validation.XValidator{Validator: validator.New()}
+	type ImageInput struct {
+		ImageId string `json:"imageid" validate:"required,min=24,max=24"`
+	}
+	body := new(ImageInput)
+	if err := c.BodyParser(body); err != nil {
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+	}
+
+	if errs := myValidator.Validate(body); len(errs) > 0 && errs[0].Error {
+
+		return validation.GenerateErrorResp(&errs)
+	}
+
+	fstream, file, err := service.DownloadPictureSt(c, &body.ImageId)
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+	}
+
+	for key, _ := range file.Metadata.Header {
+		c.Set(key, file.Metadata.Header.Get(key))
+
+	}
+	return c.SendStream(fstream)
+}
