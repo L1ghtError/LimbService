@@ -15,31 +15,35 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func UploadPicture(c *fiber.Ctx, file *multipart.FileHeader, meta *model.ImageMetadata) error {
+func UploadPicture(c *fiber.Ctx, file *multipart.FileHeader, meta *model.ImageMetadata) (*primitive.ObjectID, error) {
 	bucket, err := gridfs.NewBucket(mongoclient.DB)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	uploadOpts := options.GridFSUpload().SetMetadata(meta)
 	f, err := file.Open()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
-	fileName, _ := uuid.NewV7()
+	fileName := file.Filename
+	if len(file.Filename) == 0 {
+		uuid, _ := uuid.NewV7()
+		fileName = uuid.String()
 
-	fileType := meta.Header.Get("Content-Type")
-	extensions, _ := mime.ExtensionsByType(fileType)
-	fileExt := ""
-	if len(extensions) > 0 {
-		fileExt = extensions[0]
+		fileType := meta.Header.Get("Content-Type")
+		extensions, _ := mime.ExtensionsByType(fileType)
+		fileExt := ""
+		if len(extensions) > 0 {
+			fileExt = extensions[0]
+		}
+		fileName += fileExt
 	}
-	_, err = bucket.UploadFromStream(fileName.String()+fileExt, io.Reader(f), uploadOpts)
+	id, err := bucket.UploadFromStream(fileName, io.Reader(f), uploadOpts)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	return nil
+	return &id, nil
 }
 
 func DownloadPictureSt(c *fiber.Ctx, imageId *string) (io.Reader, *model.ImageSchema, error) {

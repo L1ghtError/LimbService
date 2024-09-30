@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"light-backend/amqpclient"
 	"light-backend/mongoclient"
 	"light-backend/routers"
 	"light-backend/validation"
@@ -15,7 +16,12 @@ func main() {
 	godotenv.Load("example.env")
 	err := mongoclient.Connect()
 	if err != nil {
-		fmt.Printf("%s", err.Error())
+		fmt.Printf("MONGO %s", err.Error())
+		return
+	}
+	err = amqpclient.Connect()
+	if err != nil {
+		fmt.Printf("AMQP %s", err.Error())
 		return
 	}
 

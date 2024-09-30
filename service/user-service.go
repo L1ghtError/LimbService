@@ -142,6 +142,7 @@ func Refresh(c *fiber.Ctx, token *jwt.Token) (*TokenPair, error) {
 	return tokens, nil
 }
 
+// TODO: jwt validation should be in fiber related layer. user-service should be agnostic
 func GetBasics(c *fiber.Ctx, token *jwt.Token) (*model.UserSchema, error) {
 	collection := mongoclient.DB.Collection("userBase")
 
@@ -164,4 +165,16 @@ func GetBasics(c *fiber.Ctx, token *jwt.Token) (*model.UserSchema, error) {
 	dbUser.Password = nil
 	dbUser.ActivationLink = [16]byte{}
 	return &dbUser, nil
+}
+
+func PushImage(c *fiber.Ctx, user *model.UserSchema, imgid *primitive.ObjectID) error {
+	collection := mongoclient.DB.Collection("userBase")
+	filter := bson.D{{Key: "_id", Value: user.ID}}
+	update := bson.D{{Key: "$push", Value: bson.D{{Key: "images", Value: imgid}}}}
+
+	_, err := collection.UpdateOne(c.Context(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
 }

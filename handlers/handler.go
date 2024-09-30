@@ -153,17 +153,23 @@ func UploadImage(c *fiber.Ctx) error {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
-	err = service.UploadPicture(c, file, &model.ImageMetadata{UserId: user.ID, Header: file.Header})
+	imgId, err := service.UploadPicture(c, file, &model.ImageMetadata{UserId: user.ID, Header: file.Header})
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
-	return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{"status": "error", "message": "Not Implemented"})
+
+	err = service.PushImage(c, user, imgId)
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"token": imgId.Hex()})
 }
 
+// TODO: allow to download only for owner or allower users
 func DownloadImage(c *fiber.Ctx) error {
 	myValidator := validation.XValidator{Validator: validator.New()}
 	type ImageInput struct {
-		ImageId string `json:"imageid" validate:"required,min=24,max=24"`
+		ImageId string `json:"imageid" validate:"required,len=24"`
 	}
 	body := new(ImageInput)
 	if err := c.BodyParser(body); err != nil {
@@ -179,8 +185,8 @@ func DownloadImage(c *fiber.Ctx) error {
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
-
-	for key, _ := range file.Metadata.Header {
+	// TODO: sets the same mime info that users passes, potential vulnerability
+	for key := range file.Metadata.Header {
 		c.Set(key, file.Metadata.Header.Get(key))
 
 	}

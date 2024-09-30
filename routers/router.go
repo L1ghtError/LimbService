@@ -5,6 +5,7 @@ import (
 	"light-backend/handlers"
 	"light-backend/middleware"
 
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
@@ -30,8 +31,8 @@ func Routes(app *fiber.App) {
 	user.Use(middleware.Protected([]byte(config.Config("JWT_ACCESS_SECRET")), middleware.HeaderTokenLookup))
 	user.Get("/basics", handlers.GetBasics)
 
-	api.Get("/download/image", handlers.DownloadImage) // TODO: set under "user"
-	//api.Post("/enhance/image", handlers.EnhanceImage)  // TODO: set under "user"
+	api.Get("/download/image", handlers.DownloadImage)                 // TODO: set under "user"
+	api.Get("/ws/enhance/image", websocket.New(handlers.EnhanceImage)) // TODO: set under "user"
 
 	user.Post("/upload/image", handlers.UploadImage)
 }
