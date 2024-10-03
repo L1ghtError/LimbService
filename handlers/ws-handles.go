@@ -10,29 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"math/rand"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func randomString(l int) string {
-	bytes := make([]byte, l)
-	for i := 0; i < l; i++ {
-		bytes[i] = byte(randInt(65, 90))
-	}
-	return string(bytes)
-}
-
-func randInt(min int, max int) int {
-	return min + rand.Intn(max-min)
-}
-
 // TODO: allow to enhance only for onwer
 // Also do not allow operation on non existing files
-func EnhanceImage(c *websocket.Conn) {
+// Deprecated - better use SSE
+func EnhanceImageWs(c *websocket.Conn) {
 
 	myValidator := validation.XValidator{Validator: validator.New()}
 	body := new(model.MUpscaleImage)
