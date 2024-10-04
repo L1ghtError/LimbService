@@ -39,9 +39,9 @@ func main() {
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://192.168.1.100:5173, http://localhost:5173", // Allow all origins or specify your domains
 		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,OPTIONS",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowHeaders:     "Origin, Content-Type, Content-Disposition, Accept, Authorization",
 		AllowCredentials: true,
-		ExposeHeaders:    "Vary, Content-Length, Content-Type, ETag",
+		ExposeHeaders:    "Vary, Content-Length, Content-Type, Content-Disposition, ETag",
 	}))
 
 	routers.Routes(app)

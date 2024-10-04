@@ -169,10 +169,10 @@ func UploadImage(c *fiber.Ctx) error {
 func DownloadImage(c *fiber.Ctx) error {
 	myValidator := validation.XValidator{Validator: validator.New()}
 	type ImageInput struct {
-		ImageId string `json:"imageid" validate:"required,len=24"`
+		ImageId string `params:"id" validate:"required,len=24"`
 	}
 	body := new(ImageInput)
-	if err := c.BodyParser(body); err != nil {
+	if err := c.ParamsParser(body); err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 

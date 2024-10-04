@@ -17,8 +17,10 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// TODO: Need more advanced tehnique to estimate process time
 func EnhanceImage(c *fiber.Ctx) error {
 	// TODO: move header definitions to middleware
+
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
@@ -47,7 +49,7 @@ func EnhanceImage(c *fiber.Ctx) error {
 		q, err := ch.QueueDeclare(
 			"",    // name
 			false, // durable
-			false, // delete when unused
+			true,  // delete when unused
 			false, // exclusive
 			false, // no-wait
 			nil,   // arguments
@@ -103,6 +105,7 @@ func EnhanceImage(c *fiber.Ctx) error {
 					fmt.Printf("SSE AMQP received mailformed %v\n", parts)
 					break
 				}
+				fmt.Printf("got %s\n", body)
 				_ = parts[0] // Progress
 				workerEstimation := parts[1]
 
@@ -115,13 +118,7 @@ func EnhanceImage(c *fiber.Ctx) error {
 				total := duration + weDuration
 				totalMs := strconv.FormatInt(total.Milliseconds(), 10) + "ms"
 
-				// resp := fiber.Map{"estimation": totalMs}
-				// fmt.Printf("Sent %v\n", resp)
-				// if err := json.NewEncoder(w).Encode(resp); err != nil {
-				// 	fmt.Printf("SSE format err:%s\n", err.Error())
-				// 	break
-				// }
-				fmt.Fprintf(w, "data: {\"estimation\":\"%s\"}\n\n", totalMs)
+				fmt.Fprintf(w, "{\"estimation\":\"%s\"}", totalMs)
 				fmt.Printf("Sent %v\n", totalMs)
 				if err := w.Flush(); err != nil {
 					fmt.Printf("SSE write err:%s\n", err.Error())

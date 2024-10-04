@@ -30,8 +30,11 @@ func Routes(app *fiber.App) {
 	user.Use(middleware.Protected([]byte(config.Config("JWT_ACCESS_SECRET")), middleware.HeaderTokenLookup))
 	user.Get("/basics", handlers.GetBasics)
 
-	api.Get("/download/image", handlers.DownloadImage) // TODO: set under "user"
-	api.Post("/enhance/image", handlers.EnhanceImage)  // TODO: set under "user"
+	api.Get("/download/image/:id", handlers.DownloadImage) // TODO: remove Debug
+	user.Get("/download/image/:id", handlers.DownloadImage)
+
+	api.Post("/enhance/image", handlers.EnhanceImage) // TODO: remove Debug
+	user.Post("/enhance/image", handlers.EnhanceImage)
 
 	user.Post("/upload/image", handlers.UploadImage)
 }
