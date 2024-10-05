@@ -34,7 +34,7 @@ func EnhanceImageWs(c *websocket.Conn) {
 	}
 
 	// AMQP
-	ch, err := amqpclient.Conn.Channel()
+	ch, err := amqpclient.NewChannel()
 	if err != nil {
 		fmt.Printf("Websock AMQP channel err:%s\n", err.Error())
 		return

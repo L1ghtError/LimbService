@@ -39,7 +39,7 @@ func EnhanceImage(c *fiber.Ctx) error {
 	c.Status(fiber.StatusOK).Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		// AMQP
 		// TODO: move all amqp-handling stuff to approptiate worker-service
-		ch, err := amqpclient.Conn.Channel()
+		ch, err := amqpclient.NewChannel()
 		if err != nil {
 			fmt.Printf("SSE AMQP channel err:%s\n", err.Error())
 			return

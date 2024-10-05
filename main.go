@@ -19,7 +19,7 @@ func main() {
 		fmt.Printf("MONGO %s", err.Error())
 		return
 	}
-	err = amqpclient.Connect()
+	err = amqpclient.Init()
 	if err != nil {
 		fmt.Printf("AMQP %s", err.Error())
 		return
