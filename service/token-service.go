@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"light-backend/config"
 	"light-backend/model"
 	"light-backend/mongoclient"
@@ -95,9 +96,15 @@ func SaveToken(c *fiber.Ctx, token *model.TokenSchema) error {
 func GetToken(c *fiber.Ctx, token *model.TokenSchema) (*model.TokenSchema, error) {
 	collection := mongoclient.DB.Collection("tokenBase")
 	filter := bson.D{{Key: "userId", Value: token.UserId}}
+
+	// TODO: Create single varible that represents connection timeout
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	defer cancel()
 	var existingToken model.TokenSchema
-	err := collection.FindOne(c.Context(), filter).Decode(&existingToken)
-	if err != nil {
+	err := collection.FindOne(ctx, filter).Decode(&existingToken)
+	if err == mongo.ErrNoDocuments {
+		return nil, fiber.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 	return &existingToken, nil

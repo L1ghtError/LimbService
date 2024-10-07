@@ -1,10 +1,11 @@
 package service
 
 import (
-	"fmt"
+	"context"
 	"light-backend/config"
 	"light-backend/model"
 	"light-backend/mongoclient"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
@@ -18,20 +19,25 @@ import (
 func Register(c *fiber.Ctx, user model.UserSchema) (*TokenPair, error) {
 	collection := mongoclient.DB.Collection("userBase")
 	filter := bson.D{{Key: "email", Value: user.Email}}
-	// TODO: cout is a overkill for isExists use case
-	alreadyExists, _ := collection.CountDocuments(c.Context(), filter)
+	// TODO: CountDocuments is a overkill for isExists use case
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	defer cancel()
+	alreadyExists, err := collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, fiber.ErrInternalServerError
+	}
 	if alreadyExists != 0 {
-		return nil, fmt.Errorf("user already registred")
+		return nil, mongo.ErrNoDocuments
 	}
 
 	user.Password, _ = bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	user.ActivationLink, _ = uuid.NewV7()
 
-	inserted, err := collection.InsertOne(c.Context(), user)
-	user.ID = inserted.InsertedID.(primitive.ObjectID)
+	inserted, err := collection.InsertOne(ctx, user)
 	if err != nil {
 		return nil, err
 	}
+	user.ID = inserted.InsertedID.(primitive.ObjectID)
 
 	tokens, err := GenerateTokens(&user)
 	if err != nil {
@@ -79,7 +85,10 @@ func Login(c *fiber.Ctx, user model.UserSchema) (*TokenPair, error) {
 	filter := bson.D{{Key: "email", Value: user.Email}}
 	var dbUser model.UserSchema
 
-	err := collection.FindOne(c.Context(), filter).Decode(&dbUser)
+	// TODO: Create single varible that represents connection timeout
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	defer cancel()
+	err := collection.FindOne(ctx, filter).Decode(&dbUser)
 	if err == mongo.ErrNoDocuments {
 		return nil, fiber.ErrNotFound
 	} else if err != nil {
@@ -117,15 +126,15 @@ func Refresh(c *fiber.Ctx, token *jwt.Token) (*TokenPair, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	userId, err := primitive.ObjectIDFromHex(claims.UserId)
 	if err != nil {
 		return nil, err
 	}
 
 	dbToken, err := GetToken(c, &model.TokenSchema{UserId: userId})
-
 	if err != nil {
-		return nil, fiber.ErrUnauthorized
+		return nil, err
 	} else if dbToken.RefreshToken != token.Raw {
 		return nil, fiber.ErrUnauthorized
 	}

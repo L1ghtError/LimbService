@@ -66,7 +66,10 @@ func Registration(c *fiber.Ctx) error {
 		Password: []byte(user.Password), IsActivated: false, Fullname: user.Fullname})
 
 	if err != nil {
-		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: err.Error()}
+		if err == fiber.ErrInternalServerError {
+			return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: err.Error()}
+		}
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
 	c.Cookie(&fiber.Cookie{Name: middleware.CookieJWT, Value: tokens.Refresh,
@@ -93,7 +96,10 @@ func Login(c *fiber.Ctx) error {
 
 	tokens, err := service.Login(c, model.UserSchema{Email: user.Email, Password: []byte(user.Password)})
 	if err != nil {
-		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: err.Error()}
+		if err == fiber.ErrNotFound {
+			return &fiber.Error{Code: fiber.ErrNotFound.Code, Message: err.Error()}
+		}
+		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: fiber.ErrInternalServerError.Error()}
 	}
 
 	c.Cookie(&fiber.Cookie{Name: middleware.CookieJWT, Value: tokens.Refresh,
@@ -112,7 +118,7 @@ func Logout(c *fiber.Ctx) error {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
-	return c.SendStatus(fiber.StatusOK)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok", "message": "ok"})
 }
 
 func Activate(c *fiber.Ctx) error {
@@ -125,9 +131,11 @@ func Refresh(c *fiber.Ctx) error {
 
 	tokens, err := service.Refresh(c, userToken)
 	if err != nil {
-		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+		if err == fiber.ErrUnauthorized {
+			return &fiber.Error{Code: fiber.ErrUnauthorized.Code, Message: err.Error()}
+		}
+		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: fiber.ErrInternalServerError.Error()}
 	}
-
 	c.Cookie(&fiber.Cookie{Name: middleware.CookieJWT, Value: tokens.Refresh,
 		HTTPOnly: true, Expires: time.Now().Add(service.RefreshokenExpires)})
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"token": tokens.Access})
@@ -162,7 +170,7 @@ func UploadImage(c *fiber.Ctx) error {
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"token": imgId.Hex()})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"imageid": imgId.Hex()})
 }
 
 // TODO: allow to download only for owner or allower users
@@ -183,7 +191,10 @@ func DownloadImage(c *fiber.Ctx) error {
 
 	fstream, file, err := service.DownloadPictureSt(c, &body.ImageId)
 	if err != nil {
-		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+		if err == fiber.ErrBadRequest {
+			return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: fiber.ErrBadRequest.Error()}
+		}
+		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: fiber.ErrInternalServerError.Error()}
 	}
 	// TODO: sets the same mime info that users passes, potential vulnerability
 	for key := range file.Metadata.Header {

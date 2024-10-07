@@ -1,6 +1,6 @@
 package service
 
 // TODO: consider moving AMQP related stuff here
-func doStuff() error {
+func DoStuff() error {
 	return nil
 }

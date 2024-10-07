@@ -15,6 +15,10 @@ Docker-compose:
 ```bash
 ** in future updates**
 ```
+
+>[!NOTE]
+>**Do not forget to fill rename exmple.env to config.env and fill it with right values**
+
 > **Tech stack:**
 > - [Fiber](https://github.com/gofiber/fiber) as web-framework
 > - [amqp091-go](https://github.com/rabbitmq/amqp091-go) for communication with workers

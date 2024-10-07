@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"io"
 	"light-backend/model"
 	"light-backend/mongoclient"
 	"mime"
 	"mime/multipart"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -58,11 +60,17 @@ func DownloadPictureSt(c *fiber.Ctx, imageId *string) (io.Reader, *model.ImageSc
 	}
 
 	filter := bson.D{{Key: "_id", Value: id}}
-	cursor, err := bucket.Find(filter)
+	// TODO: Create single varible that represents connection timeout
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	defer cancel()
+	cursor, err := bucket.FindContext(ctx, filter)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fiber.ErrInternalServerError
 	}
 	var file model.ImageSchema
+	if cursor.RemainingBatchLength() == 0 {
+		return nil, nil, fiber.ErrBadRequest
+	}
 	cursor.Next(c.Context())
 	err = cursor.Decode(&file)
 	if err != nil {

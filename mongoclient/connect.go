@@ -9,6 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// TODO: Excldude usage of global valibe, use functoin instead
+// TODO: Create single varible that represents connection timeout
 func Connect() error {
 	uri := fmt.Sprintf("mongodb://%s:%s", config.Config("DB_HOST"), config.Config("DB_PORT"))
 	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(uri))

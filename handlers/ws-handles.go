@@ -67,7 +67,8 @@ func EnhanceImageWs(c *websocket.Conn) {
 		return
 	}
 	timeN := time.Now()
-	ctx, _ := context.WithDeadline(context.Background(), timeN.Add(30*time.Second))
+	ctx, cancel := context.WithDeadline(context.Background(), timeN.Add(30*time.Second))
+	defer cancel()
 	// Convert Websock input to Big-endian input for AMQP
 	raw := body.Htoberaw()
 
