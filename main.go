@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"light-backend/amqpclient"
+	"light-backend/config"
 	"light-backend/mongoclient"
 	"light-backend/routers"
 	"light-backend/validation"
@@ -14,7 +15,7 @@ import (
 )
 
 func main() {
-	godotenv.Load("example.env")
+	godotenv.Load("config.env")
 	err := mongoclient.Connect()
 	if err != nil {
 		fmt.Printf("MONGO %s", err.Error())
@@ -55,5 +56,6 @@ func main() {
 	}))
 
 	routers.Routes(app)
-	app.Listen("localhost:5266")
+	uri := fmt.Sprintf("%s:%s", config.Config("APP_HOST"), config.Config("APP_PORT"))
+	app.Listen(uri)
 }
