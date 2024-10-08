@@ -17,7 +17,7 @@ Docker-compose:
 ```
 
 >[!NOTE]
->**Do not forget to fill rename exmple.env to config.env and fill it with right values**
+>**Do not forget to rename exmple.env to config.env and fill it with right values**
 
 > **Tech stack:**
 > - [Fiber](https://github.com/gofiber/fiber) as web-framework
