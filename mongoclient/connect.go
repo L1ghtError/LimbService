@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"light-backend/config"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -17,7 +18,12 @@ func Connect() error {
 	if err != nil {
 		return err
 	}
-
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to ping MongoDB %w", err)
+	}
 	DB = client.Database(config.Config("DB_NAME"))
 
 	if DB == nil {
