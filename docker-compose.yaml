@@ -1,0 +1,11 @@
+services:
+  server:
+    build: .
+    image: limb_service
+    env_file:
+      - ./config.env
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+      - "${AMQP_PORT}:${AMQP_PORT}"
+      - "${APP_PORT}:${APP_PORT}"
+    command: ./app

@@ -56,6 +56,6 @@ func main() {
 	}))
 
 	routers.Routes(app)
-	uri := fmt.Sprintf("%s:%s", config.Config("APP_HOST"), config.Config("APP_PORT"))
+	uri := fmt.Sprintf(":%s", config.Config("APP_PORT"))
 	app.Listen(uri)
 }

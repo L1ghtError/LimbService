@@ -9,11 +9,12 @@ $ .\light-backend
 ```
 Docker:
 ```bash
-** in future updates**
+docker build -t limb_service .
+docker run -p 5266:5266 limb_service ./app
 ```
 Docker-compose:
 ```bash
-** in future updates**
+$ docker-compose --env-file ./config.env up --build
 ```
 
 >[!NOTE]
