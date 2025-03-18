@@ -1,4 +1,4 @@
-package routers
+package router
 
 import (
 	"light-backend/config"

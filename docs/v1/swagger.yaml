@@ -172,7 +172,7 @@ paths:
                 $ref: '#/components/schemas/500Response'
       security:
       - refresh_token: []
-  /api/user/basics:
+  /api/user/info:
     get:
       tags:
       - User

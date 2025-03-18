@@ -5,7 +5,7 @@ import (
 	"light-backend/amqpclient"
 	"light-backend/config"
 	"light-backend/mongoclient"
-	"light-backend/routers"
+	"light-backend/router"
 	"light-backend/validation"
 
 	"github.com/gofiber/contrib/swagger"
@@ -55,7 +55,7 @@ func main() {
 		ExposeHeaders:    "Vary, Content-Length, Content-Type, Content-Disposition, ETag",
 	}))
 
-	routers.Routes(app)
-	uri := fmt.Sprintf(":%s", config.Config("APP_PORT"))
+	router.Routes(app)
+	uri := fmt.Sprintf("%s:%s", config.Config("APP_HOST"), config.Config("APP_PORT"))
 	app.Listen(uri)
 }
