@@ -2,20 +2,21 @@ package main
 
 import (
 	"fmt"
-	"light-backend/amqpclient"
-	"light-backend/config"
-	"light-backend/mongoclient"
-	"light-backend/router"
-	"light-backend/validation"
+	"light-backend/internal/amqpclient"
+	"light-backend/internal/mongoclient"
+	"light-backend/internal/router"
+	"light-backend/internal/validation"
+	"light-backend/pkg/config"
 
 	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	godotenv.Load("config.env")
+	conf := config.NewGoDotEnv()
+	conf.Init(".env")
+
 	err := mongoclient.Connect()
 	if err != nil {
 		fmt.Printf("MONGO %s", err.Error())
@@ -43,8 +44,8 @@ func main() {
 
 	app.Use(swagger.New(swagger.Config{
 		BasePath: "/api/v1/",
-		FilePath: "./docs/v1/swagger.yaml",
-		Path:     "docs",
+		FilePath: "./api/v1/swagger.yaml",
+		Path:     "api",
 	}))
 
 	app.Use(cors.New(cors.Config{
@@ -56,6 +57,6 @@ func main() {
 	}))
 
 	router.Routes(app)
-	uri := fmt.Sprintf("%s:%s", config.Config("APP_HOST"), config.Config("APP_PORT"))
+	uri := fmt.Sprintf("%s:%s", conf.Get(config.AppHostKey), conf.Get(config.AppPortKey))
 	app.Listen(uri)
 }

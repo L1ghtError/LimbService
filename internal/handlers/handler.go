@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"light-backend/auth"
-	"light-backend/config"
-	"light-backend/middleware"
-	"light-backend/model"
-	"light-backend/service"
-	"light-backend/validation"
+	"light-backend/internal/auth"
+	"light-backend/internal/middleware"
+	"light-backend/internal/model"
+	"light-backend/internal/service"
+	"light-backend/internal/validation"
+	"os"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -109,7 +109,8 @@ func Login(c *fiber.Ctx) error {
 
 func Logout(c *fiber.Ctx) error {
 	userToken := c.Locals("user").(*jwt.Token)
-	claims, err := service.ClaimModel(&userToken.Raw, []byte(config.Config("JWT_REFRESH_SECRET")))
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	claims, err := service.ClaimModel(&userToken.Raw, []byte(os.Getenv("JWT_REFRESH_SECRET")))
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}

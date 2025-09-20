@@ -1,9 +1,9 @@
 package router
 
 import (
-	"light-backend/config"
-	"light-backend/handlers"
-	"light-backend/middleware"
+	"light-backend/internal/handlers"
+	"light-backend/internal/middleware"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -16,8 +16,10 @@ func Routes(app *fiber.App) {
 	auth := api.Group("/auth")
 	auth.Post("/registration", handlers.Registration)
 	auth.Post("/login", handlers.Login)
-	auth.Post("/logout", middleware.Protected([]byte(config.Config("JWT_REFRESH_SECRET")), middleware.CookieTokenLookup), handlers.Logout)
-	auth.Post("/refresh", middleware.Protected([]byte(config.Config("JWT_REFRESH_SECRET")), middleware.CookieTokenLookup), handlers.Refresh)
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	auth.Post("/logout", middleware.Protected([]byte(os.Getenv("JWT_REFRESH_SECRET")), middleware.CookieTokenLookup), handlers.Logout)
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	auth.Post("/refresh", middleware.Protected([]byte(os.Getenv("JWT_REFRESH_SECRET")), middleware.CookieTokenLookup), handlers.Refresh)
 	auth.Get("/activate/:link", handlers.Activate)
 
 	// OAuth
@@ -27,7 +29,8 @@ func Routes(app *fiber.App) {
 
 	// get
 	user := api.Group("/user")
-	user.Use(middleware.Protected([]byte(config.Config("JWT_ACCESS_SECRET")), middleware.HeaderTokenLookup))
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	user.Use(middleware.Protected([]byte(os.Getenv("JWT_ACCESS_SECRET")), middleware.HeaderTokenLookup))
 	user.Get("/basics", handlers.GetBasics)
 
 	api.Get("/download/image/:id", handlers.DownloadImage) // TODO: remove Debug

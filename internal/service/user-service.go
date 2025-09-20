@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"light-backend/config"
-	"light-backend/model"
-	"light-backend/mongoclient"
+	"light-backend/internal/model"
+	"light-backend/internal/mongoclient"
+	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -122,7 +122,8 @@ func Logout(c *fiber.Ctx, user *UserClaims) error {
 }
 
 func Refresh(c *fiber.Ctx, token *jwt.Token) (*TokenPair, error) {
-	claims, err := ClaimModel(&token.Raw, []byte(config.Config("JWT_REFRESH_SECRET")))
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	claims, err := ClaimModel(&token.Raw, []byte(os.Getenv("JWT_REFRESH_SECRET")))
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +157,8 @@ func GetBasics(c *fiber.Ctx, token *jwt.Token) (*model.UserSchema, error) {
 	collection := mongoclient.DB.Collection("userBase")
 
 	// in most cases err was validated in jwt middleware
-	claims, _ := ClaimModel(&token.Raw, []byte(config.Config("JWT_ACCESS_SECRET")))
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	claims, _ := ClaimModel(&token.Raw, []byte(os.Getenv("JWT_ACCESS_SECRET")))
 
 	objectID, err := primitive.ObjectIDFromHex(claims.UserId)
 	if err != nil {

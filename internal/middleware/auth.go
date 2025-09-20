@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"light-backend/service"
+	"light-backend/internal/service"
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"

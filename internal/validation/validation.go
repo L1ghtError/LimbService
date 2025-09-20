@@ -57,6 +57,7 @@ func GenerateErrorResp(er *[]ErrorResponse) error {
 			err.Tag,
 		))
 	}
+	// TODO, define locally same structure as `fiber.Error` to remove coupling with fiber
 	return &fiber.Error{
 		Code:    fiber.ErrBadRequest.Code,
 		Message: strings.Join(errMsgs, " and "),

@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"light-backend/amqpclient"
-	"light-backend/model"
-	"light-backend/validation"
+	"light-backend/internal/amqpclient"
+	"light-backend/internal/model"
+	"light-backend/internal/validation"
 	"strconv"
 	"strings"
 	"time"

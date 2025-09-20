@@ -2,8 +2,8 @@ package amqpclient
 
 import (
 	"fmt"
-	"light-backend/config"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -22,8 +22,9 @@ func Init() error {
 }
 
 func Connect() (*amqp.Connection, error) {
-	uri := fmt.Sprintf("amqp://%s:%s@%s:%s", config.Config("AMQP_USER"), config.Config("AMQP_PASSWD"),
-		config.Config("AMQP_HOST"), config.Config("AMQP_PORT"))
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	uri := fmt.Sprintf("amqp://%s:%s@%s:%s", os.Getenv("AMQP_USER"), os.Getenv("AMQP_PASSWD"),
+		os.Getenv("AMQP_HOST"), os.Getenv("AMQP_PORT"))
 
 	dialer := &net.Dialer{
 		Timeout: 5 * time.Second,

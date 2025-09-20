@@ -4,19 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"light-backend/config"
-	model "light-backend/model"
+	model "light-backend/internal/model"
 	"net/http"
 	"net/url"
+	"os"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
 func ConfigGoogle() *oauth2.Config {
-	conf := &oauth2.Config{ClientID: config.Config("Client"),
-		ClientSecret: config.Config("Secret"),
-		RedirectURL:  config.Config("redirect_url"),
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	conf := &oauth2.Config{ClientID: os.Getenv("Client"),
+		ClientSecret: os.Getenv("Secret"),
+		RedirectURL:  os.Getenv("redirect_url"),
 		Scopes: []string{"https://www.googleapis.com/auth/userinfo.email",
 			"https://www.googleapis.com/auth/userinfo.profile",
 			"openid"},

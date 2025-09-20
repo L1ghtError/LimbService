@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"io"
-	"light-backend/model"
-	"light-backend/mongoclient"
+	"light-backend/internal/model"
+	"light-backend/internal/mongoclient"
 	"mime"
 	"mime/multipart"
 	"time"

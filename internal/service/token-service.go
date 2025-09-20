@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"light-backend/config"
-	"light-backend/model"
-	"light-backend/mongoclient"
+	"light-backend/internal/model"
+	"light-backend/internal/mongoclient"
+	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -43,7 +43,8 @@ func GenerateTokens(user *model.UserSchema) (*TokenPair, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	accessToken, err := token.SignedString([]byte(config.Config("JWT_ACCESS_SECRET")))
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	accessToken, err := token.SignedString([]byte(os.Getenv("JWT_ACCESS_SECRET")))
 	if err != nil {
 		return nil, fiber.ErrInternalServerError
 	}
@@ -52,7 +53,8 @@ func GenerateTokens(user *model.UserSchema) (*TokenPair, error) {
 	claims.RegisteredClaims.ExpiresAt = jwt.NewNumericDate(currentTime.Add(RefreshokenExpires))
 
 	token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	refreshToken, err := token.SignedString([]byte(config.Config("JWT_REFRESH_SECRET")))
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	refreshToken, err := token.SignedString([]byte(os.Getenv("JWT_REFRESH_SECRET")))
 	if err != nil {
 		return nil, fiber.ErrInternalServerError
 	}
