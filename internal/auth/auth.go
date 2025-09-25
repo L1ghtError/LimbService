@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	model "light-backend/internal/model"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,6 +11,16 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
+
+// GoogleResponse is the response sent by google
+type GoogleResponse struct {
+	ID       string `json:"id"`
+	UserName string `json:"given_name"`
+	Email    string `json:"email"`
+	Verified bool   `json:"verified_email"`
+	Picture  string `json:"picture"`
+	Fullname string `json:"name"`
+}
 
 func ConfigGoogle() *oauth2.Config {
 	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
@@ -26,7 +35,7 @@ func ConfigGoogle() *oauth2.Config {
 	return conf
 }
 
-func GetGoogleResponse(token string) (*model.GoogleResponse, error) {
+func GetGoogleResponse(token string) (*GoogleResponse, error) {
 	reqURL, err := url.Parse("https://www.googleapis.com/oauth2/v1/userinfo")
 	if err != nil {
 		return nil, err
@@ -46,7 +55,7 @@ func GetGoogleResponse(token string) (*model.GoogleResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	var data model.GoogleResponse
+	var data GoogleResponse
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, err

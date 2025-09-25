@@ -3,8 +3,6 @@ package handlers
 import (
 	"light-backend/internal/auth"
 	"light-backend/internal/middleware"
-	"light-backend/internal/model"
-	"light-backend/internal/service"
 	"light-backend/internal/validation"
 	"os"
 	"time"
@@ -12,37 +10,72 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+
+	"light-backend/internal/domain/media"
+	"light-backend/internal/domain/token"
+	"light-backend/internal/domain/user"
 )
 
-func Auth(c *fiber.Ctx) error {
+type HttpServer struct {
+	UserRepo  user.Repository
+	TokenRepo token.Repository
+	MediaRepo media.Repository
+}
+
+func (h *HttpServer) Auth(c *fiber.Ctx) error {
 	config := auth.ConfigGoogle()
 	url := config.AuthCodeURL("state")
 	return c.Redirect(url)
 }
 
-func Callback(c *fiber.Ctx) error {
-	token, err := auth.ConfigGoogle().Exchange(c.Context(), c.FormValue("code"))
+func (h *HttpServer) Callback(c *fiber.Ctx) error {
+	t, err := auth.ConfigGoogle().Exchange(c.Context(), c.FormValue("code"))
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
-	user, err := auth.GetGoogleResponse(token.AccessToken)
+	usr, err := auth.GetGoogleResponse(t.AccessToken)
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
-	tokens, err := service.OAuthConnect(c, model.UserSchema{Email: user.Email,
-		UserName: user.UserName, Fullname: user.Fullname, IsActivated: user.Verified})
+	dbUser, err := h.UserRepo.GetUserByEmail(c.UserContext(), usr.Email)
 	if err != nil {
-		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+		if err != user.ErrNotFound {
+			return err
+		}
+
+		dbUser, err = h.UserRepo.Register(
+			c.UserContext(),
+			user.UserSchema{
+				Email:    usr.Email,
+				UserName: usr.UserName,
+				Fullname: usr.Fullname,
+			},
+			true,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	tokens, err := token.GenerateTokens(dbUser.ID, dbUser.Email)
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: err.Error()}
+	}
+
+	err = h.TokenRepo.SaveToken(c.UserContext(), token.TokenSchema{UserId: dbUser.ID, RefreshToken: tokens.Refresh})
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: err.Error()}
 	}
 
 	c.Cookie(&fiber.Cookie{Name: middleware.CookieJWT, Value: tokens.Refresh,
-		Expires: time.Now().Add(service.RefreshokenExpires), SessionOnly: false})
+		Expires: time.Now().Add(token.RefreshokenExpires), SessionOnly: false})
 
 	return c.SendStatus(fiber.StatusCreated)
 }
 
-func Registration(c *fiber.Ctx) error {
+func (h *HttpServer) Registration(c *fiber.Ctx) error {
 
 	myValidator := validation.XValidator{Validator: validator.New()}
 	type RegistrationInput struct {
@@ -52,69 +85,103 @@ func Registration(c *fiber.Ctx) error {
 		Fullname string `json:"fullname" validate:"required,min=3,max=50"`
 	}
 
-	user := new(RegistrationInput)
-	if err := c.BodyParser(user); err != nil {
+	var userInput RegistrationInput
+	if err := c.BodyParser(&userInput); err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
-	if errs := myValidator.Validate(user); len(errs) > 0 && errs[0].Error {
+	if errs := myValidator.Validate(userInput); len(errs) > 0 && errs[0].Error {
 
 		return validation.GenerateErrorResp(&errs)
 	}
 
-	tokens, err := service.Register(c, model.UserSchema{Email: user.Email, UserName: user.UserName,
-		Password: []byte(user.Password), IsActivated: false, Fullname: user.Fullname})
+	dbUser, err := h.UserRepo.Register(
+		c.UserContext(),
+		user.UserSchema{
+			Email:    userInput.Email,
+			UserName: userInput.UserName,
+			Password: []byte(userInput.Password),
+			Fullname: userInput.Fullname,
+		},
+		false,
+	)
 
 	if err != nil {
-		if err == fiber.ErrInternalServerError {
-			return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: err.Error()}
+		if err == user.ErrAlreadyExists {
+			return &fiber.Error{Code: fiber.ErrConflict.Code, Message: err.Error()}
 		}
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
+	tokens, err := token.GenerateTokens(dbUser.ID, dbUser.Email)
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: err.Error()}
+	}
+
+	err = h.TokenRepo.SaveToken(c.UserContext(), token.TokenSchema{UserId: dbUser.ID, RefreshToken: tokens.Refresh})
+	if err != nil {
+		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: err.Error()}
+	}
+
 	c.Cookie(&fiber.Cookie{Name: middleware.CookieJWT, Value: tokens.Refresh,
-		HTTPOnly: true, Expires: time.Now().Add(service.RefreshokenExpires), SessionOnly: false})
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"token": tokens.Access, "email": user.Email})
+		HTTPOnly: true, Expires: time.Now().Add(token.RefreshokenExpires), SessionOnly: false})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"token": tokens.Access, "email": dbUser.Email})
 }
 
-func Login(c *fiber.Ctx) error {
+func (h *HttpServer) Login(c *fiber.Ctx) error {
 	myValidator := validation.XValidator{Validator: validator.New()}
 	type LoginInput struct {
 		Email    string `json:"email" validate:"required,email,min=3"`
 		Password string `json:"password" validate:"required,min=8,max=72"`
 	}
 
-	user := new(LoginInput)
-	if err := c.BodyParser(user); err != nil {
+	var userInput LoginInput
+	if err := c.BodyParser(&userInput); err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
-	if errs := myValidator.Validate(user); len(errs) > 0 && errs[0].Error {
+	if errs := myValidator.Validate(userInput); len(errs) > 0 && errs[0].Error {
 
 		return validation.GenerateErrorResp(&errs)
 	}
 
-	tokens, err := service.Login(c, model.UserSchema{Email: user.Email, Password: []byte(user.Password)})
+	dbUser, err := h.UserRepo.GetUserByEmail(c.UserContext(), userInput.Email)
 	if err != nil {
-		if err == fiber.ErrNotFound {
+		if err == user.ErrNotFound {
 			return &fiber.Error{Code: fiber.ErrNotFound.Code, Message: err.Error()}
 		}
-		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: fiber.ErrInternalServerError.Error()}
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(userInput.Password))
+	if err != nil {
+		return err
+	}
+
+	tokens, err := token.GenerateTokens(dbUser.ID, dbUser.Email)
+	if err != nil {
+		return err
+	}
+
+	err = h.TokenRepo.SaveToken(c.UserContext(), token.TokenSchema{UserId: dbUser.ID, RefreshToken: tokens.Refresh})
+	if err != nil {
+		return err
 	}
 
 	c.Cookie(&fiber.Cookie{Name: middleware.CookieJWT, Value: tokens.Refresh,
-		HTTPOnly: true, Expires: time.Now().Add(service.RefreshokenExpires), SessionOnly: false})
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"token": tokens.Access, "email": user.Email})
+		HTTPOnly: true, Expires: time.Now().Add(token.RefreshokenExpires), SessionOnly: false})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"token": tokens.Access, "email": dbUser.Email})
 }
 
-func Logout(c *fiber.Ctx) error {
+func (h *HttpServer) Logout(c *fiber.Ctx) error {
 	userToken := c.Locals("user").(*jwt.Token)
 	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
-	claims, err := service.ClaimModel(&userToken.Raw, []byte(os.Getenv("JWT_REFRESH_SECRET")))
+	claims, err := token.ClaimModel(userToken.Raw, []byte(os.Getenv("JWT_REFRESH_SECRET")))
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
-	err = service.Logout(c, claims)
+
+	err = h.TokenRepo.RemoveToken(c.UserContext(), token.TokenSchema{UserId: claims.UserId})
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
@@ -122,37 +189,66 @@ func Logout(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok", "message": "ok"})
 }
 
-func Activate(c *fiber.Ctx) error {
+func (h *HttpServer) Activate(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{"status": "error", "message": "Not Implemented"})
 }
 
-func Refresh(c *fiber.Ctx) error {
+func (h *HttpServer) Refresh(c *fiber.Ctx) error {
 	userToken := c.Locals("user").(*jwt.Token)
 
-	tokens, err := service.Refresh(c, userToken)
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	claims, err := token.ClaimModel(userToken.Raw, []byte(os.Getenv("JWT_REFRESH_SECRET")))
 	if err != nil {
-		if err == fiber.ErrUnauthorized {
-			return &fiber.Error{Code: fiber.ErrUnauthorized.Code, Message: err.Error()}
-		}
-		return &fiber.Error{Code: fiber.ErrInternalServerError.Code, Message: fiber.ErrInternalServerError.Error()}
+		return err
 	}
+
+	dbToken, err := h.TokenRepo.GetToken(c.UserContext(), claims.UserId)
+	if err != nil {
+		return err
+	} else if dbToken.RefreshToken != userToken.Raw {
+		return &fiber.Error{Code: fiber.ErrUnauthorized.Code, Message: fiber.ErrUnauthorized.Error()}
+	}
+
+	tokens, err := token.GenerateTokens(claims.UserId, claims.Email)
+	if err != nil {
+		return err
+	}
+
+	err = h.TokenRepo.SaveToken(c.UserContext(), token.TokenSchema{UserId: claims.UserId, RefreshToken: tokens.Refresh})
+	if err != nil {
+		return err
+	}
+
 	c.Cookie(&fiber.Cookie{Name: middleware.CookieJWT, Value: tokens.Refresh,
-		HTTPOnly: true, Expires: time.Now().Add(service.RefreshokenExpires)})
+		HTTPOnly: true, Expires: time.Now().Add(token.RefreshokenExpires)})
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"token": tokens.Access})
 }
 
-func GetBasics(c *fiber.Ctx) error {
+func (h *HttpServer) GetBasics(c *fiber.Ctx) error {
 	userToken := c.Locals("user").(*jwt.Token)
-	user, err := service.GetBasics(c, userToken)
+
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	claims, _ := token.ClaimModel(userToken.Raw, []byte(os.Getenv("JWT_ACCESS_SECRET")))
+
+	user, err := h.UserRepo.GetUserById(c.UserContext(), claims.UserId)
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
+
+	// TODO: consider returning dedicated model instead of modifying existing one
+	user.Password = nil
+
 	return c.Status(fiber.StatusOK).JSON(user)
 }
-func UploadImage(c *fiber.Ctx) error {
+
+func (h *HttpServer) UploadImage(c *fiber.Ctx) error {
 	userToken := c.Locals("user").(*jwt.Token)
-	user, err := service.GetBasics(c, userToken)
+
+	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
+	claims, _ := token.ClaimModel(userToken.Raw, []byte(os.Getenv("JWT_ACCESS_SECRET")))
+
+	user, err := h.UserRepo.GetUserById(c.UserContext(), claims.UserId)
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
@@ -162,20 +258,20 @@ func UploadImage(c *fiber.Ctx) error {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
-	imgId, err := service.UploadPicture(c, file, &model.ImageMetadata{UserId: user.ID, Header: file.Header})
+	imgId, err := h.MediaRepo.UploadPicture(c.UserContext(), *file, media.ImageMetadata{UserId: user.ID, Header: file.Header})
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
 
-	err = service.PushImage(c, user, imgId)
+	err = h.UserRepo.AddImageId(c.UserContext(), user, imgId)
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"imageid": imgId.Hex()})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"imageid": imgId})
 }
 
 // TODO: allow to download only for owner or allower users
-func DownloadImage(c *fiber.Ctx) error {
+func (h *HttpServer) DownloadImage(c *fiber.Ctx) error {
 	myValidator := validation.XValidator{Validator: validator.New()}
 	type ImageInput struct {
 		ImageId string `params:"id" validate:"required,len=24"`
@@ -190,7 +286,7 @@ func DownloadImage(c *fiber.Ctx) error {
 		return validation.GenerateErrorResp(&errs)
 	}
 
-	fstream, file, err := service.DownloadPictureSt(c, &body.ImageId)
+	fstream, file, err := h.MediaRepo.DownloadPicture(c.UserContext(), body.ImageId)
 	if err != nil {
 		if err == fiber.ErrBadRequest {
 			return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: fiber.ErrBadRequest.Error()}

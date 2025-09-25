@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"light-backend/internal/adapters"
 	"light-backend/internal/amqpclient"
-	"light-backend/internal/mongoclient"
+	"light-backend/internal/handlers"
+	mongoclient "light-backend/internal/infrastructure/mongo"
 	"light-backend/internal/router"
 	"light-backend/internal/validation"
 	"light-backend/pkg/config"
+	"log"
+	"os"
+	"time"
 
 	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
@@ -17,11 +23,28 @@ func main() {
 	conf := config.NewGoDotEnv()
 	conf.Init(".env")
 
-	err := mongoclient.Connect()
-	if err != nil {
-		fmt.Printf("MONGO %s", err.Error())
-		return
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cfg := mongoclient.Config{
+		Host: os.Getenv("DB_HOST"),
+		Port: os.Getenv("DB_PORT"),
+		//User:     os.Getenv("DB_USER"),
+		//Password: os.Getenv("DB_PASS"),
+		Database: os.Getenv("DB_NAME"),
 	}
+
+	mongoConn, err := mongoclient.NewConnect(ctx, cfg)
+	if err != nil {
+		log.Fatalf("Mongo connection failed: %v", err)
+	}
+	defer mongoConn.Client.Disconnect(context.Background())
+
+	userRepo := adapters.NewUserMongoRepository(*mongoConn.Database.Collection(adapters.MongoUserCollection))
+	tokenRepo := adapters.NewTokenMongoRepository(*mongoConn.Database.Collection(adapters.MongoTokenCollection))
+	mediaRepo := adapters.NewMediaGridFsRepository(*mongoConn.Bucket)
+	server := handlers.HttpServer{UserRepo: userRepo, TokenRepo: tokenRepo, MediaRepo: mediaRepo}
+
 	err = amqpclient.Init()
 	if err != nil {
 		fmt.Printf("AMQP %s", err.Error())
@@ -56,7 +79,7 @@ func main() {
 		ExposeHeaders:    "Vary, Content-Length, Content-Type, Content-Disposition, ETag",
 	}))
 
-	router.Routes(app)
+	router.Routes(server, app)
 	uri := fmt.Sprintf("%s:%s", conf.Get(config.AppHostKey), conf.Get(config.AppPortKey))
 	app.Listen(uri)
 }

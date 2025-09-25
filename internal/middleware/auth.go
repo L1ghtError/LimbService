@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"light-backend/internal/service"
+	"light-backend/internal/domain/token"
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
@@ -25,7 +25,7 @@ func Protected(signingKey []byte, tokenLookup string) fiber.Handler {
 	}
 	return jwtware.New(jwtware.Config{
 		SigningKey:   jwtware.SigningKey{Key: signingKey},
-		Claims:       &service.UserClaims{},
+		Claims:       &token.UserClaims{},
 		TokenLookup:  tokenLookup,
 		AuthScheme:   authScheme,
 		ErrorHandler: jwtError,

@@ -1,0 +1,17 @@
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["_id", "email", "username", "isActivated"],
+    "additionalProperties": false,
+    "properties": {
+      "_id": { "bsonType": "objectId" },
+      "email": { "bsonType": "string", "minLength": 3, "description": "required string email" },
+      "username": { "bsonType": "string", "minLength": 3, "maxLength": 30, "description": "required string name" },
+      "password": { "bsonType": ["binData", "null"], "description": "required encrypted string password" },
+      "isActivated": { "bsonType": "bool", "description": "required bool shows does user activates its email" },
+      "activationLink": { "bsonType": ["binData", "null"], "minLength": 16, "maxLength": 16, "description": "required string email activation link" },
+      "fullname": { "bsonType": "string", "description": "optional string full name" },
+      "images": { "bsonType": "array", "items": { "bsonType": "objectId" }, "description": "optional array of images that user uploaded" }
+    }
+  }
+}

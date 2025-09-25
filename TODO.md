@@ -16,7 +16,8 @@
 - [ ] Reduce Coupling in data structures
 - [ ] Minimize amount of dynamically allocated object `&` or `new()`
 - [ ] Generate endpoints automatically via `oapi-codegen`, instead of specifying them manually
-- [ ] Use CQRS for better code separation
+- [ ] Instead of handler struct, use CQRS for better code separation
+- [ ] Improve registration to handle both regular auth and OAuth without using a boolean to skip password check
 
 ## 🔴 Implementation Tasks (1.5) 
 - [ ] Implement mechanism to send tasks only to specific workers
@@ -24,8 +25,13 @@
 - [ ] Define strict rules for workers discovery
 - [ ] Implement mechanism to send tasks only to specific workers
 - [ ] Increase test coverage
-- [ ] Add golangci-lint
+- [ ] Add [golangci-lint](https://golangci-lint.run/)
+
 
 ## 🟠 To-Do Medium Priority (2)
 - [ ] Measure passing by value vs ref performance
 - [ ] Add ability to be logged in one account from different devices
+- [ ] Change `GetBasics` to `GetCurrentUser`, it seems more obvious
+
+## 🔵 Backlog (0)
+- [c] Both `GetUserByEmail` and `GetUserById` may be redundand, consider refactoring - *Canceled: both useful*

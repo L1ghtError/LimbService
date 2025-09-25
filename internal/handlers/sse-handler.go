@@ -18,7 +18,7 @@ import (
 )
 
 // TODO: Need more advanced tehnique to estimate process time
-func EnhanceImage(c *fiber.Ctx) error {
+func (h *HttpServer) EnhanceImage(c *fiber.Ctx) error {
 	// TODO: move header definitions to middleware
 
 	c.Set("Content-Type", "text/event-stream")
