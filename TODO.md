@@ -6,7 +6,7 @@
 
 ## 🔴 Refactoring Tasks To-Do High Priority (1)
 - [ ] Make application runnable even if there is no other running services (mongo/rabbit/etc...)
-- [ ] Implemnet Repository instead of explicit usage of mongodb
+- [x] Implemnet Repository instead of explicit usage of mongodb
 - [ ] Remove config usage from all modules and move it to the `main`
 - [ ] Move code under appropropriate `internal` and `pkg` dirs
 - [ ] Remove `Poor Packaging` such as directory `model`,`util`...
