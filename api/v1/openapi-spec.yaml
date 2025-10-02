@@ -1,0 +1,464 @@
+openapi: 3.0.3
+info:
+  title: "Limb AI API"
+  description: "API that can be used by Client App to communicate with [Limb AI Backend](https://github.com/L1ghtError/LimbService) app."
+  version: "1.0.0"
+  contact:
+    name: "Developer Contacts (Telegram)"
+    url: "https://t.me/Nependall320"
+servers:
+  - url: /
+  - url: '{protocol}://{host}:{port}{path}'
+    variables:
+      protocol:
+        enum:
+          - http
+          - https
+        default: http
+      host:
+        default: localhost
+      port:
+        default: '8250'
+      path:
+        default: '/'
+tags:
+- name: RegularAuth
+  description: |-
+    Manual authentication (email,passwd,etc...).
+- name: OAuth
+  description: |-
+    OAuth (Google...).
+- name: User
+  description: |-
+    Endpoints allowed for authenticated users.
+paths:
+  /api/auth/register:
+    post:
+      operationId: Register
+      tags:
+      - RegularAuth
+      summary: "Register a new user."
+      description: |
+        Creates a new user account.
+        On success, sets an `HttpOnly` cookie named `jwt` containing the refresh token.
+      requestBody:
+        required: true
+        description: User registration details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterInput'
+      responses:
+        200:
+          description: User successfully registered
+          headers:
+            jwt:
+              description: >
+                `HttpOnly` cookie named `jwt` containing the refresh token.
+              schema: 
+                $ref: '#/components/schemas/JwtRefreshToken'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegularAuthResponse'
+        400:
+          $ref: '#/components/responses/BadRequest'
+  /api/auth/login:
+    post:
+      operationId: Login
+      tags:
+      - RegularAuth
+      summary: "Authenticate a user"
+      description: |
+        Authenticates a registered user.
+
+        On success, sets an `HttpOnly` cookie named `jwt` containing the refresh token,
+        and returns an access token in the response body.
+      requestBody:
+        required: true
+        description: User login credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+      responses:
+        200:
+          description: User successfully logged in
+          headers:
+            jwt:
+              description: >
+                `HttpOnly` cookie named `jwt` containing the refresh token.
+              schema: 
+                $ref: '#/components/schemas/JwtRefreshToken'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegularAuthResponse' 
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /api/auth/logout:
+    post:
+      operationId: Logout
+      tags:
+      - RegularAuth
+      summary: "Log out the current user"
+      description: |
+        Logs out the authenticated user.
+        Credentials are stored in an `HttpOnly` cookie.
+      responses:
+        200:
+          description: Successfully logged out
+        400:
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - refresh_token: []
+  /api/auth/refresh:
+    post:
+      operationId: Refresh
+      tags:
+      - RegularAuth
+      summary: "Refresh access token"
+      description: |
+        Issues a new access token using the refresh token stored in an `HttpOnly` cookie.
+
+        On success, sets a new `HttpOnly` cookie named `jwt` containing the updated refresh token,
+        and returns a new access token in the response body.
+      responses:
+        200:
+          description: Successfully refreshed access and refresh tokens
+          headers:
+            jwt:
+              description: >
+                `HttpOnly` cookie named `jwt` containing the refresh token.
+              schema:
+                $ref: '#/components/schemas/JwtRefreshToken'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    $ref: '#/components/schemas/JwtAccessToken'
+        400:
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - refresh_token: []
+
+  /api/oauth:
+    get:
+      operationId: GoogleOAuth
+      tags:
+        - OAuth
+      summary: "Redirect to Google OAuth page"
+      description: "Initiates Google OAuth flow by redirecting the user to Google's authorization page."
+      responses:
+        '302':
+          description: "Redirects the client to Google's OAuth page."
+          headers:
+           Location:
+             description: "URL to redirect the client to."
+             schema:
+               type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/googleOAuthCb:
+    get:
+      operationId: GoogleOAuthCb
+      tags:
+      - OAuth
+      summary: "Get google redirect page"
+      description: "Opens google redirect pae"
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code returned by Google OAuth2
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Optional state parameter for CSRF protection
+      responses:
+        200:
+          description: Successfully refreshed access and refresh tokens
+          headers:
+            jwt:
+              description: >
+                `HttpOnly` cookie named `jwt` containing the refresh token.
+              schema:
+                $ref: '#/components/schemas/JwtRefreshToken'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    $ref: '#/components/schemas/JwtAccessToken'
+        400:
+          $ref: '#/components/responses/BadRequest'
+
+  /api/user/{username}:
+    get:
+      operationId: GetUserInfo
+      tags:
+      - User
+      summary: "Get information about a specific user"
+      description: "Retrieve basic information for a user identified by their username"
+      parameters:
+      - name: username
+        in: path
+        required: true
+        description: "The username of the user to retrieve"
+        schema:
+          type: string
+      responses:
+        200:
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicUserInfo'
+        400:
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - access_token: []
+  /api/user/download/image/{imageId}:
+    get:
+      operationId: DownloadImage
+      tags:
+      - User
+      summary: "Download a specific user's image"
+      description: "Retrieve the image of a user by its unique ID."
+      parameters:
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/parameters/imageId'
+      responses:
+        200:
+          description: Image retrieved successfully
+          content:
+            image/png:
+              schema: 
+                type: string
+                format: binary
+        400:
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - access_token: []
+  /api/user/upload/image:
+    post:
+      operationId: UploadImage
+      tags:
+      - User
+      summary: "Upload a user image"
+      description: >
+        Upload a specific user's image. Supported image formats are JPEG and PNG.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                document:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        200:
+          description: Successfully uploaded image
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imageid:
+                    $ref: '#/components/schemas/ImageId'
+        400:
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - access_token: []
+  /api/user/process/image:
+    post:
+      operationId: ProcessImage
+      tags:
+      - User
+      summary: "Process a user's image (SSE only)"
+      description: |
+        Processes a specific user's image using server-sent events (SSE).
+        Processing may take some time depending on the image size and enhancement parameters.
+      requestBody:
+        required: true
+        description: JSON payload containing image enhancement parameters
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageProcessingOptions'
+      responses:
+        200:
+          description: Processing started successfully
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ProcessingStatus'
+        400:
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - access_token: []
+components:
+  parameters:
+    imageId:
+      name: id
+      in: query
+      schema:
+        type: string
+        example: "23a1dae5ad1260dfaf0e859e"
+  schemas:
+    RegisterInput:
+      type: object
+      properties:
+          email:
+            type: string
+            format: email
+            example: example@gmail.com
+          username:
+            type: string
+            example: JohnLamborghini
+          password:
+            type: string
+            example: Qw%3c$qxmp
+          fullname:
+            type:  string
+            example: JohnLamborghini1234
+    ImageProcessingOptions:
+      type: object
+      required:
+        - imageId
+        - processingType
+      properties:
+          imageid:
+            type: string
+            example: 66d5eae5ad3460d9ad0e859e
+          processingType:
+            type: integer
+            example: 2
+    ProcessingStatus:
+      type: object
+      properties:
+          estimation:
+            type: string
+            example: 23.1ms
+    LoginInput:
+      type: object
+      properties:
+          email:
+            type: string
+            format: email
+            example: example@gmail.com
+          password:
+            type: string
+            example: Qw%3c$qxmp
+    RegularAuthResponse:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/JwtAccessToken'
+        email:
+          type: string
+          format: email
+          example: example@gmail.com
+          description: "Authenticated users email"
+    JwtAccessToken:
+      type: string
+      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.rTCH8cLoGxAm_xw68z-zXVKi9ie6xJn9tnVWjd_9ftE
+      description: "Users JWT access token"
+    JwtRefreshToken:
+      type: string
+      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.rTCH8cLoGxAm_xw68z-zXVKi9ie6xJn9tnVWjd_9ftE
+      description: "Users JWT refresh token"
+    BasicUserInfo:
+      description: Basic information about a user
+      type: object
+      properties:
+        id:
+          type: string
+          title: User Id
+          example: "66d5eae5ad3460d9ad0e859e"
+        email:
+          type: string
+          format: email
+          example: example@gmail.com
+          description: "users email"
+        username:
+          type: string
+          example: JohnLamborghini
+          description: "usersname"
+        fullname:
+          type: string
+          example: JohnLamborghini1234
+          description: "users full name" 
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageId'
+          description: (array of users images)
+    ImageId:
+      type: string
+      title: ImageId
+      example: "23a1dae5ad1260dfaf0e859e"
+    Error:
+      type: object
+      properties:
+        type:
+          type: string
+          example: object
+        title:
+          type: string
+          example: Validation failed
+  responses:
+    BadRequest:
+      description: Bad request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    access_token:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        **Access Token (JWT)**
+        A short-lived JWT used for authenticating API requests.
+        Sent in the `Authorization: Bearer <token>` header.
+        Expires in minutes and should not be stored in persistent storage.
+
+    refresh_token:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+      description: |
+        **Refresh Token (JWT)**
+        A long-lived JWT stored in an `HttpOnly` cookie named `refresh_token`.
+        Used to obtain new access tokens when the current one expires.
+        The cookie is automatically sent by the browser with requests.
+        

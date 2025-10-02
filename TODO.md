@@ -31,7 +31,8 @@
 ## 🟠 To-Do Medium Priority (2)
 - [ ] Measure passing by value vs ref performance
 - [ ] Add ability to be logged in one account from different devices
-- [ ] Change `GetBasics` to `GetCurrentUser`, it seems more obvious
+- [ ] Change `GetBasics` to `GetUserInfo`, it seems more obvious
+- [ ] Change `fullname` to `nickname`, because service do not require real name
 
 ## 🔵 Backlog (0)
 - [c] Both `GetUserByEmail` and `GetUserById` may be redundand, consider refactoring - *Canceled: both useful*
