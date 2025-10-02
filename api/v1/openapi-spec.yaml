@@ -146,7 +146,7 @@ paths:
       security:
       - refresh_token: []
 
-  /api/oauth:
+  /api/oauth/google:
     get:
       operationId: GoogleOAuth
       tags:
@@ -163,7 +163,7 @@ paths:
                type: string
         '400':
           $ref: '#/components/responses/BadRequest'
-  /api/googleOAuthCb:
+  /api/oauth/google/callback:
     get:
       operationId: GoogleOAuthCb
       tags:

@@ -67,8 +67,8 @@ func main() {
 
 	app.Use(swagger.New(swagger.Config{
 		BasePath: "/api/v1/",
-		FilePath: "./api/v1/swagger.yaml",
-		Path:     "api",
+		FilePath: "./api/v1/openapi-spec.yaml",
+		Path:     "specification",
 	}))
 
 	app.Use(cors.New(cors.Config{
