@@ -63,6 +63,10 @@ func (r *UserMongoRepository) GetUserByEmail(ctx context.Context, email string) 
 
 func (r *UserMongoRepository) GetUserById(ctx context.Context, userId string) (UserSchema, error) {
 	id, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return UserSchema{}, err
+	}
+
 	filter := bson.D{{Key: "_id", Value: id}}
 	var dbUser UserSchema
 

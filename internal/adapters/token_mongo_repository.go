@@ -18,12 +18,6 @@ type TokenMongoRepository struct {
 
 type TokenSchema = token.TokenSchema
 
-type tokenDoc struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty"`
-	UserID       primitive.ObjectID `bson:"userId"`
-	RefreshToken string             `bson:"refreshToken"`
-}
-
 func NewTokenMongoRepository(col mongo.Collection) *TokenMongoRepository {
 	return &TokenMongoRepository{collection: col}
 }
