@@ -6,7 +6,7 @@ openapi: openapi_http
 
 .PHONY: openapi_http
 openapi_http:
-	@./scripts/openapi-http.sh infra ./internal/ports ports
+	@./scripts/openapi-http.sh openapi_spec ./internal/ports ports
 
 .PHONY: lint
 lint:

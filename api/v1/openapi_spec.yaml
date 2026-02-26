@@ -239,7 +239,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/parameters/imageId'
+            $ref: '#/components/schemas/ImageId'
       responses:
         200:
           description: Image retrieved successfully
@@ -323,20 +323,33 @@ components:
   schemas:
     RegisterInput:
       type: object
+      required:
+        - email
+        - username
+        - password
+        - fullname
       properties:
           email:
             type: string
             format: email
             example: example@gmail.com
+            x-oapi-codegen-extra-tags:
+              validate: "email"
           username:
             type: string
             example: JohnLamborghini
+            x-oapi-codegen-extra-tags:
+              validate: "min=2,max=64"
           password:
             type: string
             example: Qw%3c$qxmp
+            x-oapi-codegen-extra-tags:
+              validate: "min=8,max=64"
           fullname:
             type:  string
             example: JohnLamborghini1234
+            x-oapi-codegen-extra-tags:
+              validate: "min=2,max=64"
     ImageProcessingOptions:
       type: object
       required:
@@ -357,14 +370,21 @@ components:
             example: 23.1ms
     LoginInput:
       type: object
+      required:
+        - email
+        - password
       properties:
           email:
             type: string
             format: email
             example: example@gmail.com
+            x-oapi-codegen-extra-tags:
+              validate: "email"
           password:
             type: string
             example: Qw%3c$qxmp
+            x-oapi-codegen-extra-tags:
+              validate: "min=8,max=64"
     RegularAuthResponse:
       type: object
       properties:

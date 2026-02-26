@@ -3,6 +3,7 @@ package handlers
 import (
 	"light-backend/internal/auth"
 	"light-backend/internal/middleware"
+	"light-backend/internal/ports"
 	"light-backend/internal/validation"
 	"os"
 	"time"
@@ -23,14 +24,14 @@ type HttpServer struct {
 	MediaRepo media.Repository
 }
 
-func (h *HttpServer) Auth(c *fiber.Ctx) error {
+func (h *HttpServer) GoogleOAuth(c *fiber.Ctx) error {
 	config := auth.ConfigGoogle()
 	url := config.AuthCodeURL("state")
 	return c.Redirect(url)
 }
 
-func (h *HttpServer) Callback(c *fiber.Ctx) error {
-	t, err := auth.ConfigGoogle().Exchange(c.Context(), c.FormValue("code"))
+func (h *HttpServer) GoogleOAuthCb(c *fiber.Ctx, params ports.GoogleOAuthCbParams) error {
+	t, err := auth.ConfigGoogle().Exchange(c.Context(), params.Code)
 	if err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
@@ -75,17 +76,11 @@ func (h *HttpServer) Callback(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusCreated)
 }
 
-func (h *HttpServer) Registration(c *fiber.Ctx) error {
+func (h *HttpServer) Register(c *fiber.Ctx) error {
 
 	myValidator := validation.XValidator{Validator: validator.New()}
-	type RegistrationInput struct {
-		Email    string `json:"email" validate:"required,email,min=3"`
-		UserName string `json:"username" validate:"required,min=3,max=50"`
-		Password string `json:"password" validate:"required,min=8,max=72"`
-		Fullname string `json:"fullname" validate:"required,min=3,max=50"`
-	}
 
-	var userInput RegistrationInput
+	var userInput ports.RegisterInput
 	if err := c.BodyParser(&userInput); err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
@@ -98,8 +93,8 @@ func (h *HttpServer) Registration(c *fiber.Ctx) error {
 	dbUser, err := h.UserRepo.Register(
 		c.UserContext(),
 		user.UserSchema{
-			Email:    userInput.Email,
-			UserName: userInput.UserName,
+			Email:    string(userInput.Email),
+			UserName: userInput.Username,
 			Password: []byte(userInput.Password),
 			Fullname: userInput.Fullname,
 		},
@@ -130,12 +125,8 @@ func (h *HttpServer) Registration(c *fiber.Ctx) error {
 
 func (h *HttpServer) Login(c *fiber.Ctx) error {
 	myValidator := validation.XValidator{Validator: validator.New()}
-	type LoginInput struct {
-		Email    string `json:"email" validate:"required,email,min=3"`
-		Password string `json:"password" validate:"required,min=8,max=72"`
-	}
 
-	var userInput LoginInput
+	var userInput ports.LoginInput
 	if err := c.BodyParser(&userInput); err != nil {
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
 	}
@@ -145,7 +136,7 @@ func (h *HttpServer) Login(c *fiber.Ctx) error {
 		return validation.GenerateErrorResp(&errs)
 	}
 
-	dbUser, err := h.UserRepo.GetUserByEmail(c.UserContext(), userInput.Email)
+	dbUser, err := h.UserRepo.GetUserByEmail(c.UserContext(), string(userInput.Email))
 	if err != nil {
 		if err == user.ErrNotFound {
 			return &fiber.Error{Code: fiber.ErrNotFound.Code, Message: err.Error()}
@@ -225,7 +216,9 @@ func (h *HttpServer) Refresh(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"token": tokens.Access})
 }
 
-func (h *HttpServer) GetBasics(c *fiber.Ctx) error {
+func (h *HttpServer) GetUserInfo(c *fiber.Ctx, username string) error {
+	_ = username
+
 	userToken := c.Locals("user").(*jwt.Token)
 
 	// TODO Refactor: instead of using Getenv we should rely on config.Get, but for now its low priority
@@ -271,14 +264,14 @@ func (h *HttpServer) UploadImage(c *fiber.Ctx) error {
 }
 
 // TODO: allow to download only for owner or allower users
-func (h *HttpServer) DownloadImage(c *fiber.Ctx) error {
+func (h *HttpServer) DownloadImage(c *fiber.Ctx, imageId ports.ImageId) error {
 	myValidator := validation.XValidator{Validator: validator.New()}
 	type ImageInput struct {
 		ImageId string `params:"id" validate:"required,len=24"`
 	}
-	body := new(ImageInput)
-	if err := c.ParamsParser(body); err != nil {
-		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: err.Error()}
+
+	body := ImageInput{
+		ImageId: string(imageId),
 	}
 
 	if errs := myValidator.Validate(body); len(errs) > 0 && errs[0].Error {

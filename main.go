@@ -21,7 +21,7 @@ import (
 
 func main() {
 	conf := config.NewGoDotEnv()
-	conf.Init(".env")
+	conf.Init("config.env")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -67,7 +67,7 @@ func main() {
 
 	app.Use(swagger.New(swagger.Config{
 		BasePath: "/api/v1/",
-		FilePath: "./api/v1/openapi-spec.yaml",
+		FilePath: "./api/v1/openapi_spec.yaml",
 		Path:     "specification",
 	}))
 
@@ -79,7 +79,7 @@ func main() {
 		ExposeHeaders:    "Vary, Content-Length, Content-Type, Content-Disposition, ETag",
 	}))
 
-	router.Routes(server, app)
+	router.Routes(&server, app)
 	uri := fmt.Sprintf("%s:%s", conf.Get(config.AppHostKey), conf.Get(config.AppPortKey))
 	app.Listen(uri)
 }
