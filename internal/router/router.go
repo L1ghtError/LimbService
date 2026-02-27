@@ -46,10 +46,8 @@ func Routes(si ports.ServerInterface, r *fiber.App) {
 
 	user.Get("/:username", wrapper.GetUserInfo)
 
-	api.Get("/download/image/:imageId", wrapper.DownloadImage) // TODO: remove Debug
 	user.Get("/download/image/:imageId", wrapper.DownloadImage)
 
-	api.Post("/process/image", wrapper.ProcessImage) // TODO: remove Debug
 	user.Post("/process/image", wrapper.ProcessImage)
 
 	user.Post("/upload/image", wrapper.UploadImage)
