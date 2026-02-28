@@ -21,7 +21,7 @@
 
 ## 🔴 Implementation Tasks (1.5) 
 - [ ] Implement mechanism to send tasks only to specific workers
-- [ ] Change Rabbitmq payload type from raw binary to Protobuffs
+- [x] Change Rabbitmq payload type from raw binary to Protobuffs - *Changed: JSON*
 - [ ] Define strict rules for workers discovery
 - [ ] Implement mechanism to send tasks only to specific workers
 - [ ] Increase test coverage
@@ -31,7 +31,7 @@
 ## 🟠 To-Do Medium Priority (2)
 - [ ] Measure passing by value vs ref performance
 - [ ] Add ability to be logged in one account from different devices
-- [ ] Change `GetBasics` to `GetUserInfo`, it seems more obvious
+- [x] Change `GetBasics` to `GetUserInfo`, it seems more obvious
 - [ ] Change `fullname` to `nickname`, because service do not require real name
 
 ## 🔵 Backlog (0)
