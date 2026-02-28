@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bufio"
 	"light-backend/internal/auth"
 	"light-backend/internal/middleware"
 	"light-backend/internal/ports"
@@ -22,6 +23,8 @@ type HttpServer struct {
 	UserRepo  user.Repository
 	TokenRepo token.Repository
 	MediaRepo media.Repository
+
+	MediaTransport media.Transport
 }
 
 func (h *HttpServer) GoogleOAuth(c *fiber.Ctx) error {
@@ -292,4 +295,29 @@ func (h *HttpServer) DownloadImage(c *fiber.Ctx, imageId ports.ImageId) error {
 
 	}
 	return c.SendStream(fstream)
+}
+
+func (h *HttpServer) ProcessImage(c *fiber.Ctx) error {
+	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("Transfer-Encoding", "chunked")
+
+	validator := validation.XValidator{Validator: validator.New()}
+	var task media.ImageTask
+
+	if err := c.BodyParser(&task); err != nil {
+		return err
+	}
+	if errs := validator.Validate(task); len(errs) > 0 && errs[0].Error {
+		err := validation.GenerateErrorResp(&errs)
+		return err
+	}
+
+	register := func(w *bufio.Writer) {
+		h.MediaTransport.ProcessImage(task, w)
+	}
+
+	c.Status(fiber.StatusOK).Context().SetBodyStreamWriter(register)
+	return nil
 }

@@ -43,7 +43,8 @@ func main() {
 	userRepo := adapters.NewUserMongoRepository(*mongoConn.Database.Collection(adapters.MongoUserCollection))
 	tokenRepo := adapters.NewTokenMongoRepository(*mongoConn.Database.Collection(adapters.MongoTokenCollection))
 	mediaRepo := adapters.NewMediaGridFsRepository(*mongoConn.Bucket)
-	server := handlers.HttpServer{UserRepo: userRepo, TokenRepo: tokenRepo, MediaRepo: mediaRepo}
+	mediaTransport := adapters.NewAmqpTransport()
+	server := handlers.HttpServer{UserRepo: userRepo, TokenRepo: tokenRepo, MediaRepo: mediaRepo, MediaTransport: mediaTransport}
 
 	err = amqpclient.Init()
 	if err != nil {
