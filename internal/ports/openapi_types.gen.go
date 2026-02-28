@@ -12,6 +12,11 @@ const (
 	Refresh_tokenScopes = "refresh_token.Scopes"
 )
 
+// AvailableProcessorsSchema defines model for AvailableProcessorsSchema.
+type AvailableProcessorsSchema struct {
+	AvailableProcessors []MediaProcessor `json:"availableProcessors"`
+}
+
 // BasicUserInfo Basic information about a user
 type BasicUserInfo struct {
 	// Email users email
@@ -53,6 +58,12 @@ type JwtRefreshToken = string
 type LoginInput struct {
 	Email    openapi_types.Email `json:"email" validate:"email"`
 	Password string              `json:"password" validate:"min=8,max=64"`
+}
+
+// MediaProcessor defines model for MediaProcessor.
+type MediaProcessor struct {
+	Index int    `json:"index"`
+	Name  string `json:"name"`
 }
 
 // ProcessingStatus defines model for ProcessingStatus.

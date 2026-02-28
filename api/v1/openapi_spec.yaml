@@ -227,6 +227,24 @@ paths:
           $ref: '#/components/responses/BadRequest'
       security:
       - access_token: []
+  /api/user/processors/available:
+    get:
+      operationId: GetAvailableProcessors
+      tags:
+        - User
+      summary: "List available processors"
+      description: "Returns a list of processors available to the authenticated user, including basic metadata such as processor ID, name, and capabilities."
+      responses:
+        200:
+          description: Available processors retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableProcessorsSchema'
+        400:
+          $ref: '#/components/responses/BadRequest'
+      security:
+        - access_token: []
   /api/user/download/image/{imageId}:
     get:
       operationId: DownloadImage
@@ -321,6 +339,29 @@ components:
         type: string
         example: "23a1dae5ad1260dfaf0e859e"
   schemas:
+    AvailableProcessorsSchema:
+      type: object
+      required:
+        - availableProcessors
+      properties:
+        availableProcessors:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaProcessor'
+
+    MediaProcessor:
+      type: object
+      properties:
+        index:
+          type: integer
+          example: 0
+        name:
+          type: string
+          example: "processor-1"
+      required:
+        - index
+        - name
+
     RegisterInput:
       type: object
       required:
@@ -350,6 +391,7 @@ components:
             example: JohnLamborghini1234
             x-oapi-codegen-extra-tags:
               validate: "min=2,max=64"
+
     ImageProcessingOptions:
       type: object
       required:
@@ -385,6 +427,7 @@ components:
             example: Qw%3c$qxmp
             x-oapi-codegen-extra-tags:
               validate: "min=8,max=64"
+
     RegularAuthResponse:
       type: object
       properties:
@@ -395,14 +438,17 @@ components:
           format: email
           example: example@gmail.com
           description: "Authenticated users email"
+
     JwtAccessToken:
       type: string
       example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.rTCH8cLoGxAm_xw68z-zXVKi9ie6xJn9tnVWjd_9ftE
       description: "Users JWT access token"
+
     JwtRefreshToken:
       type: string
       example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.rTCH8cLoGxAm_xw68z-zXVKi9ie6xJn9tnVWjd_9ftE
       description: "Users JWT refresh token"
+
     BasicUserInfo:
       description: Basic information about a user
       type: object
@@ -429,10 +475,12 @@ components:
           items:
             $ref: '#/components/schemas/ImageId'
           description: (array of users images)
+
     ImageId:
       type: string
       title: ImageId
       example: "23a1dae5ad1260dfaf0e859e"
+
     Error:
       type: object
       properties:
@@ -442,6 +490,7 @@ components:
         title:
           type: string
           example: Validation failed
+
   responses:
     BadRequest:
       description: Bad request.

@@ -37,6 +37,9 @@ type ServerInterface interface {
 	// Process a user's image (SSE only)
 	// (POST /api/user/process/image)
 	ProcessImage(c *fiber.Ctx) error
+	// List available processors
+	// (GET /api/user/processors/available)
+	GetAvailableProcessors(c *fiber.Ctx) error
 	// Upload a user image
 	// (POST /api/user/upload/image)
 	UploadImage(c *fiber.Ctx) error
@@ -151,6 +154,14 @@ func (siw *ServerInterfaceWrapper) ProcessImage(c *fiber.Ctx) error {
 	return siw.Handler.ProcessImage(c)
 }
 
+// GetAvailableProcessors operation middleware
+func (siw *ServerInterfaceWrapper) GetAvailableProcessors(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(Access_tokenScopes, []string{})
+
+	return siw.Handler.GetAvailableProcessors(c)
+}
+
 // UploadImage operation middleware
 func (siw *ServerInterfaceWrapper) UploadImage(c *fiber.Ctx) error {
 
@@ -213,6 +224,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/user/download/image/:imageId", wrapper.DownloadImage)
 
 	router.Post(options.BaseURL+"/api/user/process/image", wrapper.ProcessImage)
+
+	router.Get(options.BaseURL+"/api/user/processors/available", wrapper.GetAvailableProcessors)
 
 	router.Post(options.BaseURL+"/api/user/upload/image", wrapper.UploadImage)
 

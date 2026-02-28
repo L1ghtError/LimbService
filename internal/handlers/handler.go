@@ -238,6 +238,16 @@ func (h *HttpServer) GetUserInfo(c *fiber.Ctx, username string) error {
 	return c.Status(fiber.StatusOK).JSON(user)
 }
 
+func (h *HttpServer) GetAvailableProcessors(c *fiber.Ctx) error {
+
+	info, err := h.MediaTransport.GetWorkersInfo()
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(ports.AvailableProcessorsSchema{AvailableProcessors: info.AvailableProcessors})
+}
+
 func (h *HttpServer) UploadImage(c *fiber.Ctx) error {
 	userToken := c.Locals("user").(*jwt.Token)
 

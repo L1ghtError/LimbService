@@ -46,6 +46,8 @@ func Routes(si ports.ServerInterface, r *fiber.App) {
 
 	user.Get("/:username", wrapper.GetUserInfo)
 
+	user.Get("/processors/available", wrapper.GetAvailableProcessors)
+
 	user.Get("/download/image/:imageId", wrapper.DownloadImage)
 
 	user.Post("/process/image", wrapper.ProcessImage)

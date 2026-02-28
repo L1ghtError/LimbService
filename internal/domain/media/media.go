@@ -1,6 +1,9 @@
 package media
 
-import "net/textproto"
+import (
+	"light-backend/internal/ports"
+	"net/textproto"
+)
 
 type ImageMetadata struct {
 	UserId string               `json:"userId" bson:"userId"`
@@ -31,12 +34,7 @@ type ImageTaskResult struct {
 	Status  Status `json:"status" validate:"required"`
 }
 
-type Processor struct {
-	Index int    `json:"index"`
-	Name  string `json:"name"`
-}
-
 type AppInfoTask struct {
-	TotalCpuThreads     int         `json:"totalCpuThreads"`
-	AvailableProcessors []Processor `json:"availableProcessors"`
+	TotalCpuThreads     int                    `json:"totalCpuThreads"`
+	AvailableProcessors []ports.MediaProcessor `json:"availableProcessors"`
 }
